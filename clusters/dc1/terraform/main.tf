@@ -1,11 +1,11 @@
-terraform { 
-  cloud { 
+terraform {
+  cloud {
     organization = "marifw_dev"
-    workspaces { 
-      name = "DB-cluster-1" 
+    workspaces {
+      name    = "DB-cluster-1"
       project = "hashistack"
-    } 
-  } 
+    }
+  }
 }
 
 terraform {
@@ -28,4 +28,149 @@ data "google_service_account" "owner_project" {
 # VPC creation
 resource "google_compute_network" "network" {
   name = "${var.cluster_name}-network"
+}
+
+# Subnet creation
+resource "google_compute_subnetwork" "subnet" {
+  name = "${var.cluster_name}-subnetwork"
+
+  ip_cidr_range = "10.2.0.0/16"
+  region        = var.gcp_region
+  network       = google_compute_network.network.id
+}
+
+# Create an ip address for the load balancer
+resource "google_compute_address" "global-ip" {
+  name   = "${var.cluster_name}-lb-ip"
+  region = var.gcp_region
+}
+
+# External IP addresses
+resource "google_compute_address" "server_addr" {
+  count = var.numnodes
+  name  = "server-addr-${count.index}"
+  # subnetwork = google_compute_subnetwork.subnet.id
+  region = var.gcp_region
+}
+
+resource "google_compute_address" "client_addr" {
+  count = var.numclients
+  name  = "client-addr-${count.index}"
+  # subnetwork = google_compute_subnetwork.subnet.id
+  region = var.gcp_region
+}
+
+# Create firewall rules
+
+resource "google_compute_firewall" "default" {
+  name    = "hashi-rules-${random_id.server.dec}"
+  network = google_compute_network.network.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443", "8500", "8501", "8502", "8503", "22", "8300", "8301", "8400", "8302", "8600", "4646", "4647", "4648", "8443", "8080", "8081", "3000", "3100", "9090"]
+  }
+  allow {
+    protocol = "udp"
+    ports    = ["8600", "8301", "8302"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = [var.cluster_name, "nomad-${var.cluster_name}", "consul-${var.cluster_name}"]
+}
+
+# These are internal rules for communication between the nodes internally
+resource "google_compute_firewall" "internal" {
+  name    = "hashi-internal-rules-${random_id.server.dec}"
+  network = google_compute_network.network.name
+
+  allow {
+    protocol = "tcp"
+  }
+  allow {
+    protocol = "udp"
+  }
+
+  source_tags = [var.cluster_name, "nomad-${var.cluster_name}", "consul-${var.cluster_name}"]
+  target_tags = [var.cluster_name, "nomad-${var.cluster_name}", "consul-${var.cluster_name}"]
+}
+
+# Creating Load Balancing with different required resources
+resource "google_compute_region_backend_service" "default" {
+  name = "${var.cluster_name}-backend-service"
+  health_checks = [
+    google_compute_region_health_check.default.id
+  ]
+  region                = var.gcp_region
+  protocol              = "TCP"
+  load_balancing_scheme = "EXTERNAL"
+  backend {
+    # group  = google_compute_instance_group.hashi_group.id
+    group = google_compute_region_instance_group_manager.hashi-group.instance_group
+    # balancing_mode = "CONNECTION"
+  }
+}
+
+resource "google_compute_region_backend_service" "apps" {
+  count = length(google_compute_region_instance_group_manager.clients-group)
+  name  = "${var.cluster_name}-apigw-${count.index}"
+  health_checks = [
+    google_compute_region_health_check.apps.id
+  ]
+  region                = var.gcp_region
+  protocol              = "TCP"
+  load_balancing_scheme = "EXTERNAL"
+  backend {
+    # group  = google_compute_instance_group.app_group.id
+    group          = google_compute_region_instance_group_manager.clients-group[count.index].instance_group
+    balancing_mode = "CONNECTION"
+  }
+}
+
+resource "google_compute_region_health_check" "default" {
+  name               = "${var.cluster_name}-health-check"
+  check_interval_sec = 5
+  timeout_sec        = 5
+  region             = var.gcp_region
+
+  http_health_check {
+    port         = "8500"
+    request_path = "/v1/status/leader"
+  }
+}
+
+resource "google_compute_region_health_check" "apps" {
+  name               = "${var.cluster_name}-health-check-apigw"
+  check_interval_sec = 1
+  timeout_sec        = 1
+  region             = var.gcp_region
+
+  # http_health_check {
+  #   port = "8080"
+  #   request_path = "/"
+  # }
+  tcp_health_check {
+    port = "8080"
+  }
+}
+
+resource "google_compute_forwarding_rule" "global-lb" {
+  name            = "hashistack-lb"
+  ip_address      = google_compute_address.global-ip.address
+  backend_service = google_compute_region_backend_service.default.id
+  region          = var.gcp_region
+  ip_protocol     = "TCP"
+  ports           = ["4646-4648", "8500-8503", "8600", "9701-9702", "8443"]
+}
+
+# The number of LBs for the apps will be equal to the number of region instance groups (one per admin partition)
+resource "google_compute_forwarding_rule" "clients-lb" {
+  count = length(google_compute_region_backend_service.apps)
+  name  = "clients-lb"
+  #  ip_address = google_compute_address.global-ip.address
+  backend_service = google_compute_region_backend_service.apps[count.index].id
+  # target    = google_compute_target_pool.vm-pool.self_link
+  region      = var.gcp_region
+  ip_protocol = "TCP"
+  ports       = ["80", "3000", "8080", "8081", "9090"]
 }
