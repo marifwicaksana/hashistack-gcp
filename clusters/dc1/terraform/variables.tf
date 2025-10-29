@@ -73,7 +73,7 @@ variable "image_family" {
 
 variable "dns_zone" {
   description = "An already existing DNS zone in your GCP project"
-  default     = null
+  default     = ""
 }
 
 variable "consul_partitions" {
