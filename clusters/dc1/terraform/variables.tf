@@ -27,7 +27,7 @@ variable "gcp_sa" {
   description = "GCP Service Account to use for scopes"
 }
 variable "gcp_instance" {
-  description = "Machine type for nodes"
+  description = "Machine type for nodes e.g. `e2-standard-2`"
 }
 # variable "gcp_zones" {
 #   description = "availability zones"
