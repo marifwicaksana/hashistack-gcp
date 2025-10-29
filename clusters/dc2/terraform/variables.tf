@@ -1,6 +1,6 @@
 variable "gcp_region" {
   description = "Google Cloud region"
-  default     = "us-central1"
+  default     = "us-west2"
 }
 # variable "gcp_zone" {
 #   description = "Google Cloud region"

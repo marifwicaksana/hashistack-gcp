@@ -2,7 +2,7 @@ terraform {
   cloud {
     organization = "marifw_dev"
     workspaces {
-      name    = "cluster-dc1"
+      name    = "cluster-dc2"
       project = "hashistack"
     }
   }
@@ -11,6 +11,7 @@ terraform {
 terraform {
   required_version = ">= 1.0.0"
 }
+
 
 resource "random_id" "server" {
   byte_length = 1
