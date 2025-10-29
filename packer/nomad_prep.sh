@@ -62,6 +62,3 @@ sudo chown -R nomad:nomad $NOMAD_DATA
 
 # Need to add nomad user to Docker group to make the Docker driver available.
 sudo usermod -G docker -a nomad
-
-
-

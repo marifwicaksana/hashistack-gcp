@@ -7,10 +7,13 @@ variable "sshuser" {
 }
 variable "gcp_zone" {
   description = "GCP Zone"
-  default = "europe-southwest1-a"
+  default     = "europe-southwest1-a"
 }
 variable "image" {
   default = "consul-nomad"
+}
+variable "machine_type" {
+  default = "e2-standard-2"
 }
 variable "consul_version" {
   default = "1.21.2+ent"
@@ -28,15 +31,19 @@ variable "source_image_family" {
   default = "debian-12"
 }
 variable "hcp_bucket_name" {
-  description = "HCP Bucket Name"
-  default = "consul-nomad"
+  description = "HCP Packer's bucket name"
+  default     = "consul-nomad"
+}
+variable "owner" {
+  description = "Owner name"
+  default     = "pablogdiaz"
 }
 
 locals {
-  consul_version = var.consul_version
-  nomad_version = var.nomad_version
-  consul_version_safe = regex_replace(var.consul_version,"\\.+|\\+","-")
-  nomad_version_safe = regex_replace(var.nomad_version,"\\.+|\\+","-")
+  consul_version      = var.consul_version
+  nomad_version       = var.nomad_version
+  consul_version_safe = regex_replace(var.consul_version, "\\.+|\\+", "-")
+  nomad_version_safe  = regex_replace(var.nomad_version, "\\.+|\\+", "-")
 }
 
 packer {
@@ -47,34 +54,33 @@ packer {
     }
   }
 }
+
 source "googlecompute" "consul_nomad" {
-  project_id = var.gcp_project
+  project_id          = var.gcp_project
   source_image_family = var.source_image_family
-  image_name = "${var.image}-${local.consul_version_safe}-${local.nomad_version_safe}"
-  image_family = var.image_family
-  machine_type = "e2-standard-2"
+  image_name          = "${var.image}-${local.consul_version_safe}-${local.nomad_version_safe}"
+  image_family        = var.image_family
+  machine_type        = var.machine_type
   # disk_size = 50
   ssh_username = var.sshuser
-  zone = var.gcp_zone
-  # image_licenses = ["projects/vm-options/global/licenses/enable-vmx"]
+  zone         = var.gcp_zone
 }
 
-
 build {
-#  hcp_packer_registry {
-#    bucket_name = var.hcp_bucket_name
-#    description = <<EOT
-#Image for Consul, Nomad and Vault
-#    EOT
-#    bucket_labels = {
-#      "hashicorp"    = "Vault,Consul,Nomad",
-#      "owner" = "pablogdiaz",
-#      "platform" = "hashicorp",
-#    }
-#  }
+  hcp_packer_registry {
+    bucket_name = var.hcp_bucket_name
+    description = <<EOT
+Image for Consul, Nomad and Vault
+   EOT
+    bucket_labels = {
+      "hashicorp" = "Vault,Consul,Nomad",
+      "owner"     = var.owner,
+      "platform"  = "hashicorp",
+    }
+  }
   sources = ["sources.googlecompute.consul_nomad"]
   provisioner "shell" {
-    scripts = ["../consul_prep.sh","../nomad_prep.sh"]
+    scripts = ["../consul_prep.sh", "../nomad_prep.sh"]
     # execute_command = "chmod +x {{ .Path }}; {{ .Vars }} sudo '{{ .Path }}'"
     environment_vars = [
       "CONSUL_VERSION=${var.consul_version}",

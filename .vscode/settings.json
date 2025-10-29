@@ -1,0 +1,17 @@
+{
+  "yaml.schemas": {
+    "file:///Users/muhammadarifwicaksana/.vscode/extensions/ibm.zopeneditor-6.0.0/resources/zapp-schema-1.6.0.json": [
+      "zapp.yaml"
+    ],
+    "file:///Users/muhammadarifwicaksana/.vscode/extensions/ibm.zopeneditor-6.0.0/resources/zcodeformat-schema-0.0.1.json": [
+      "zcodeformat.yaml"
+    ],
+    "https://taskfile.dev/schema.json": [
+      "file:///Users/muhammadarifwicaksana/Documents/hashistack-gcp/tasks/packer.yml",
+      "file:///Users/muhammadarifwicaksana/Documents/hashistack-gcp/tasks/applications.yml",
+      "file:///Users/muhammadarifwicaksana/Documents/hashistack-gcp/tasks/boundary-auto.yml",
+      "file:///Users/muhammadarifwicaksana/Documents/hashistack-gcp/tasks/infrastructure.yml",
+      "file:///Users/muhammadarifwicaksana/Documents/hashistack-gcp/tasks/01_infrastructure.yaml"
+    ]
+  }
+}
