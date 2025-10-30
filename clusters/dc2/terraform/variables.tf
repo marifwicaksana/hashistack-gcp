@@ -44,7 +44,7 @@ variable "numclients" {
 }
 variable "cluster_name" {
   description = "Name of the cluster"
-  default     = "cluster-dc2"
+  default     = "gcp-dc2"
 }
 variable "owner" {
   description = "Owner of the cluster"
