@@ -29,6 +29,7 @@ variable "gcp_sa" {
 }
 variable "gcp_instance" {
   description = "Machine type for nodes e.g. `e2-standard-2`"
+  default     = "e2-standard-2"
 }
 # variable "gcp_zones" {
 #   description = "availability zones"
